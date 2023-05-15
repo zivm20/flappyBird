@@ -7,30 +7,58 @@ PImage landscape;
 float pipeX = 1200;
 float pipe1Y = 0;
 float pipe2Y = 0;
-boolean colide = false;
+boolean anyAlive = true;
+
+float MUTATE_AMOUNT_ = 0.03;
+float MUTATE_RATE_ = 0.09;
+int INPUT_DIM_ = 8;
+float WEIGHT_CHANCE_ = 0.1;
+float STD_ = 0.3;
+/*
 float gravity = 375.0;
 boolean drop = true;
 float hitboxX = 80;
 float hitboxY = 80;
 int vy = 0;
-int gameScore = -2, newScore = -1;
+*/
+int gameScore = 0;
+int generation = 1;
+int playersAlive = 0;
 int highScore = 0;
-void setup(){
-   birdIMG = loadImage("bird.jpg");
-   pipeIMGtop = loadImage("pipe2.png");
-   pipeIMGbot = loadImage("pipe.png");
-   landscape = loadImage("landscape.jpg");
-   f = createFont("david",16,true);
 
-   size(1500,1000);
-   smooth();
-   frameRate(60);
-   draw();
+import java.util.ArrayList;
+ArrayList<Player> players = new ArrayList<Player>();
+int numPlayers = 100;
+int[] brainLayers = {10,10,10};
+
+
+
+void setup(){
+  birdIMG = loadImage("bird.jpg");
+  pipeIMGtop = loadImage("pipe2.png");
+  pipeIMGbot = loadImage("pipe.png");
+  landscape = loadImage("landscape.jpg");
+  f = createFont("david",16,true);
+  genPipe();
+  
+  //params
+  float std = STD_;
+  float weightChance = WEIGHT_CHANCE_;
+  float mutateRate = MUTATE_RATE_;
+  float mutateAmount = MUTATE_AMOUNT_;
+ 
+  for(int i = 0; i<numPlayers; i++){
+    players.add(new Player(brainLayers,std,mutateRate,mutateAmount,weightChance));
+  }
+  size(1500,1000);
+  smooth();
+  frameRate(60);
+  draw();
 }
 
 void draw(){
 
-  if(!colide){
+  if(anyAlive){
     background(255);
 
     
@@ -39,26 +67,41 @@ void draw(){
     fill(255,0,0);
     textFont(f,36);
     textAlign(CENTER);
+    text("Generation: "+generation,1200,250);
+    text("Alive: "+playersAlive+"/"+numPlayers,1200,200);
     text("Score: "+gameScore,1200, 150);
     text("High score: "+highScore,1200,100);
-    bird();
-    vy += 1 ;
-    gravity += vy;
-    colide();
-
+    
+    
+    int awardPoint = 0;
+    
     pipeX -= 10;
+    if (pipeX + 250 == 0){
+      gameScore+=1;
+      genPipe();
+      awardPoint=1;
+    }
     pipe();
+    
+    anyAlive = false;
+    playersAlive = 0;
+    for(Player p: players){
+      p.update(pipeX,pipe1Y,pipe2Y);
+      
+      if(p.getAlive()){
+        playersAlive++;
+        anyAlive = true;
+        p.addPoint(awardPoint);
+      }
+    }
+    
+    
   }  
 
-  if (newScore >= gameScore){
-      genPipe();
-  }
-  if (pipeX + 250 == 0){
-    newScore ++;
-    pipeX = 1500;
-  }
+  
 
-  if (colide){
+  else if (!anyAlive){
+    /*
     landscape.resize(width,height);
     background(landscape);
     if (highScore < gameScore){
@@ -73,9 +116,12 @@ void draw(){
     text("High score: "+highScore,width/2,height/2 +50);
     fill(255,0,0);
     text("press F to \n play again ",width/2,635);
-    
+    */
+    reset();
   }
 }
+
+/*
 void bird(){
   pushMatrix();
   translate(100,gravity);
@@ -83,9 +129,10 @@ void bird(){
   //rect (0,0,40,40);
   popMatrix();
 }
+*/
 void pipe(){
-    System.out.println(colide);
-
+  //System.out.println(colide);
+  
   pushMatrix();
   translate(pipeX,0);
   //rect(0,0,15,50);
@@ -93,6 +140,7 @@ void pipe(){
   popMatrix();
   pushMatrix();
   translate(pipeX, -689);
+  //translate(pipeX,0);
   image(pipeIMGtop,0,pipe2Y);
   popMatrix();
   
@@ -104,10 +152,11 @@ void genPipe(){
     //pipe 2 is top
     pipe2Y = (float)(Math.random() * ((max - min) + 1)) + min;
     pipe1Y = pipe2Y + 300;
-    gameScore ++;
-    pipe();
-    //System.out.println("top: " + pipe2Y + ",            bot: " + pipe1Y);
+    pipeX = 1500;
+    
 }
+
+/*
 void mousePressed(){
     vy = -20; 
 }
@@ -128,23 +177,64 @@ void colide(){
     }
 
 }
+*/
 void keyPressed(){
     if (key == 'F' || key == 'f'){
-      colide = false;
-
       reset();
     } 
 }
 void reset(){
-    pipeX = 1200;
-    gravity = 375.0;
-    drop = true;
-    vy = 0;
-    gameScore = -2;
-    newScore = -1;
-    background(255);
+  pipeX = 1200;
+  gameScore = 0;
+  background(255);
+
+  players.sort((o1, o2)-> o2.calcScore()- o1.calcScore() );
+  //println(players.get(0).calcScore(),players.get(50).calcScore());
+  ArrayList<Player> newPlayers = new ArrayList<Player>();
+  int maxOptions = numPlayers-10;
+  float totalScore = 0;
+  for(int i = 0; i<numPlayers; i++){
+    highScore = max(players.get(i).getScore(),highScore);
+    totalScore+=players.get(i).calcScore();
+  }
+
+  for(int i = 0; i<numPlayers; i++){
+    float p1 = random(totalScore);
+    float p2 = random(totalScore);
+    int p1Idx = 0;
+    int p2Idx = 0;
+    for(int j = 0;j < numPlayers; j++){
+      p1 -= players.get(j).calcScore();
+      p2 -= players.get(j).calcScore();
+      if(p1>0){
+        p1Idx++;
+        //println(p1,p1Idx);
+      }
+      if(p2>0){
+        p2Idx++;
+        //println(amount,p,pIdx);
+      }
+    }
+    int tmp = p1Idx;
+    p1Idx = min(p1Idx,p2Idx);
+    p2Idx = max(p2Idx,tmp);
+    if(i < maxOptions){
+      
+      newPlayers.add(players.get(p1Idx).giveBirth(players.get(p2Idx),0.75-MUTATE_RATE_/2.0,0.25-MUTATE_RATE_/2.0,MUTATE_AMOUNT_));
+    }
+    else
+      newPlayers.add(players.get(p1Idx));
+    //println(players.get(pIdx).getBrain());
+  }
+  players = newPlayers;
+  
+  for(Player p: players){
+   p.startStats(); 
+  }
+  anyAlive = true;
+  generation++;
 
 
-    setup();
+    
 
 }
