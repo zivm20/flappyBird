@@ -7,6 +7,7 @@ PImage landscape;
 float pipeX = 1200;
 float pipe1Y = 0;
 float pipe2Y = 0;
+float speed = 10;
 boolean anyAlive = true;
 
 float MUTATE_AMOUNT_ = 0.03;
@@ -14,6 +15,7 @@ float MUTATE_RATE_ = 0.09;
 int INPUT_DIM_ = 8;
 float WEIGHT_CHANCE_ = 0.1;
 float STD_ = 0.3;
+
 /*
 float gravity = 375.0;
 boolean drop = true;
@@ -75,8 +77,8 @@ void draw(){
     
     int awardPoint = 0;
     
-    pipeX -= 10;
-    if (pipeX + 250 == 0){
+    pipeX -= 10*speed;
+    if (pipeX + 250 <= 0){
       gameScore+=1;
       genPipe();
       awardPoint=1;

@@ -5,7 +5,7 @@ class Player{
   float y;
   float hitboxX;
   float hitboxY;
-  int vy;
+  float vy;
 
   
   
@@ -114,8 +114,9 @@ class Player{
 
   void update(float pipeX, float pipe1Y, float pipe2Y){
     if (this.alive){
-      this.vy += 1;
+      
       this.y += vy;
+      this.vy += 1*speed;
       updateImg();
       
       if (hasColided(pipeX, pipe1Y, pipe2Y)){
