@@ -7,7 +7,7 @@ PImage landscape;
 float pipeX = 1200;
 float pipe1Y = 0;
 float pipe2Y = 0;
-float speed = 10;
+float speed = 2;
 boolean anyAlive = true;
 
 float MUTATE_AMOUNT_ = 0.03;
